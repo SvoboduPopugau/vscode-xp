@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+	<html lang="ru">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Три вертикальных раздела</title>
+		<style>
+			.container {
+				display: flex;
+				height: 100vh;
+			}
+			.section {
+				flex: 1;
+				padding: 20px;
+				border: 1px solid #ccc;
+				box-sizing: border-box;
+			}
+			.options {
+  			  width: 300px;
+  			  height: 100px;
+  			  overflow-y: auto;
+  			  background-color: #333;
+  			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="section" id="textSection">
+				Здесь отображаем выбранную категорию
+			</div>
+			<div class="section" id="radioSection">
+				<form>
+				<input type="radio" id="option1" name="option" value="option1">
+				<label for="option1">Вариант 1</label><p></p>
+		
+				<input type="radio" id="option2" name="option" value="option2">
+				<label for="option2">Вариант 2</label><p></p>
+		
+				<input type="radio" id="option3" name="option" value="option3">
+				<label for="option3">Вариант 3</label><p></p>
+				</form>
+				
+
+				<select name="options" id="select" multiple style="color: black;">
+					<option value="option4">Вариант 4</option>
+					<option value="option5">Вариант 5</option>  
+					<option value="option6">Вариант 6</option>
+				</select>
+			</div>
+			<div class="section" id="dynamicTextSection">
+				*Подробное описание в зависимости от выбранного пункта*
+			</div>
+		</div>
+		
+
+		<script>
+		const vscode = acquireVsCodeApi();
+
+		document.getElementById('option1').addEventListener('change', function() {
+			document.getElementById('dynamicTextSection').innerText = 'Вы выбрали вариант 1';
+			vscode.postMessage({command: 'option1'});
+			document.getElementById('dynamicTextSection').innerText = 'Вы выбрали вариант 1))))';
+		})		
+		document.getElementById('option2').addEventListener('change', function() {
+			document.getElementById('dynamicTextSection').innerText = 'Вы выбрали вариант 2';
+		})		
+		document.getElementById('option3').addEventListener('change', function() {
+			document.getElementById('dynamicTextSection').innerText = 'Вы выбрали вариант 3';
+		});
+		</script>		
+	</body>
+</html>

@@ -18,6 +18,7 @@ import { UnitTestContentEditorViewProvider } from './views/unitTestEditor/unitTe
 import { UnitTestsListViewProvider } from './views/unitTestEditor/unitTestsListViewProvider';
 import { IntegrationTestEditorViewProvider } from './views/integrationTests/integrationTestEditorViewProvider';
 import { MetainfoViewProvider } from './views/metaInfo/metainfoViewProvider';
+import { CategorizatorViewProvider } from './views/categorization/categorizatorViewProvider';
 import { Configuration } from './models/configuration';
 import { XpCompletionItemProvider } from './providers/xpCompletionItemProvider';
 import { ContentTreeProvider } from './views/contentTree/contentTreeProvider';
@@ -140,6 +141,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
 		InitKBRootCommand.init(config);
 		RetroCorrelationViewController.init(config);
 		CommonCommands.init(config);
+		CategorizatorViewProvider.init(config)
 
 		const templateFilePath = path.join(
 			config.getExtensionPath(),
@@ -222,4 +224,8 @@ export async function deactivate(): Promise<void> | undefined {
 	}
 
 	return client.stop();
+}
+
+function getWebviewContent(filename) {
+    return "";
 }
