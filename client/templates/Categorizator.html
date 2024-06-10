@@ -7,8 +7,6 @@
 		<title>Мастер категоризации</title>
 
 		<link rel="stylesheet" href="{{{ExtensionBaseUri}}}/client/templates/styles/main.css">
-		<link rel="stylesheet" href="{{{ExtensionBaseUri}}}/client/templates/styles/tests.css">
-		<link rel="stylesheet" href="{{{ExtensionBaseUri}}}/client/templates/styles/hljs.css">
 		<link rel="stylesheet" href="{{{ExtensionBaseUri}}}/client/templates/styles/categorizator.css">
 	
 	</head>
@@ -24,12 +22,12 @@
 
 		<div class="container">
 			<div class="section process" id="textSection">
-				<h3>{{Locale.GategorizationProcess}}</h3>
+				<p class="section-p">{{Locale.GategorizationProcess}}</p>
 				<textarea rows="100" cols="100" readonly>Здесь отображаем выбранные категории
 				</textarea>
 			</div>
 			<div class="section options" id="radioSection">
-				<h3>{{Locale.ChooseValue}}</h3>
+				<p class="section-p">{{Locale.ChooseValue}}</p>
 				<form id="OptionsForm">
 				<input type="radio" id="option1" name="option" value="option1">
 				<label for="option1">Вариант 1</label><p></p>
@@ -42,7 +40,7 @@
 				</form>
 			</div>
 			<div class="section description" id="dynamicTextSection">
-				<h3>{{Locale.ValueDescription}}</h3>
+				<p class="section-p">{{Locale.ValueDescription}}</p>
 				<textarea id="description" rows="100" cols="100" readonly>*Подробное описание в зависимости от выбранного пункта*
 				</textarea>
 			</div>
