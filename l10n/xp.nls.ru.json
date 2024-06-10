@@ -153,5 +153,13 @@
     "View.CreateRule.CreateAggregationHeader": "Создать правила агрегации",
     
     "View.CreateRule.Template": "Шаблон",
-    "View.CreateRule.NameLabel": "Название"
+    "View.CreateRule.NameLabel": "Название",
+
+    "View.Categorizator.Title": "Мастер категоризации для {0}",
+    "View.Categorizator.NextStep": "Далее",
+    "View.Categorizator.PreviousStep": "Назад",
+    "View.Categorizator.Save": "Сохранить",
+    "View.Categorizator.GategorizationProcess": "Процесс категоризации",
+    "View.Categorizator.ChooseValue": "Выберите наиболее подходящий вариант",
+    "View.Categorizator.ValueDescription": "Описание выбранного варианта"
 }

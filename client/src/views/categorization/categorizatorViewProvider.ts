@@ -5,88 +5,149 @@ import * as vscode from 'vscode';
 import {Configuration} from "../../models/configuration" 
 import { RuleBaseItem } from '../../models/content/ruleBaseItem';
 import { MustacheFormatter } from '../mustacheFormatter';
+import { Normalization } from '../../models/content/normalization';
+import { DialogHelper } from '../../helpers/dialogHelper';
+import { Log } from '../../extension';
+import { FileSystemHelper } from '../../helpers/fileSystemHelper';
 
 export class CategorizatorViewProvider {
-
-	private _view?: vscode.WebviewPanel;
-	private _rule: RuleBaseItem;
-
 
 	public static readonly viewId = 'CategorizationView';
 	public static showCategorizatorCommand = "CategorizationView.showCategorizator";
 
+	private _view?: vscode.WebviewPanel;
+	private rule: RuleBaseItem;
+
+	
+
 
 	constructor(
-		private readonly _config: Configuration,
-		private readonly _formatter: MustacheFormatter
+		private readonly config: Configuration,
+		private readonly _templatePath: string,
 	) { }
 
 
-	public static init(config: Configuration): CategorizatorViewProvider {
-		
-		// Создаем панель действий с кнопкой
-		// Скорее всего надо куда-то перенести 
-		// TODO: Убрать эту команду и создать вызов команды через ПКМ tree-provider
-		let action = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-		action.command = this.showCategorizatorCommand;
-		action.text = '$(rocket) Categorizator';
-		action.tooltip = 'Нажмите, чтобы запустить мастер категоризации';
-		action.show();
+	public static init(config: Configuration): void {
 
-		const categorizationTemplateFilePath = path.join(
+		const templatePath = path.join(
 			config.getExtensionPath(), "client", "templates", "Categorizator.html");
-		const categorizationTemplateContent = fs.readFileSync(categorizationTemplateFilePath).toString();
 
-		const categorizatorViewProvider = new CategorizatorViewProvider(
+		const provider = new CategorizatorViewProvider(
 			config, 
-			new MustacheFormatter(categorizationTemplateContent)
+			templatePath
 		);
 
-
+		// Подписываемся на команду показа категоризатора
 		config.getContext().subscriptions.push(
 			vscode.commands.registerCommand(
 				CategorizatorViewProvider.showCategorizatorCommand,
-				async () => {
-					categorizatorViewProvider.showCategorizator();
+				async (rule: Normalization) => {
+					// Обновляем юнит тесты для формулы нормализации, чтобы было возможно увидеть актуальные тесты при их модификации
+					if (!rule) {
+						DialogHelper.showError("Формула не успела еще загрузиться. Повторите еще раз");
+						return;
+					}
+
+					rule.reloadUnitTests();
+					provider.showCategorizator(rule);
 				}
 			)
 		);	
 
-
-		return categorizatorViewProvider;
 	}
 
-	public async showCategorizator(): Promise<void> {
-		    // Создаем новое окно
-			this._view = vscode.window.createWebviewPanel(
-				CategorizatorViewProvider.viewId, // Идентификатор окна
-				'<Имя файла - формулы нормализации>', // Заголовок окна
-				vscode.ViewColumn.One, // Колонка, в которой будет отображаться окно
-				{
-					enableScripts: true, // Включаем поддержку JavaScript
-				}
-			);
+	public async showCategorizator(rule: Normalization): Promise<void> {
 
-			// Создаем обработчик входящих сообщений
-			this._view.webview.onDidReceiveMessage(
-				(message) => {
-					// TODO: Сделать метод для обработки событий, возможно связать с Updater
-				  vscode.window.showInformationMessage(`Hello, you choose ${message.command}`)
-				},
-				this
-			  );
+		Log.debug(`Категоризатор открыт для формулы нормализации ${rule.getName()}`);
 
-			//   Задаем отображение html страницы 
-			// TODO: Перевести обработку через formatter и updateWebView, возможно понадобиться Updater
-			const categorizatorHtml = this._formatter.format({})
-			this._view.webview.html = categorizatorHtml
+		if (this._view)  {
+			Log.debug(`Открытый ранее категоризатор для формулы нормализации  ${this.rule.getName()} был автоматически закрыт`);
+
+			this.rule = null;
+			this._view.dispose();
+		}
+
+		if (!(rule instanceof Normalization)) {
+			DialogHelper.showWarning(`Категоризатор не поддерживает правил кроме формул нормализации`);
+			return;
+		}
+
+		this.rule = rule;
+
+		const viewTitle = this.config.getMessage("View.Categorizator.Title", this.rule.getName())
+		const resources = [vscode.Uri.joinPath(this.config.getExtensionUri(), "client", "out"),
+			vscode.Uri.joinPath(this.config.getExtensionUri(),  "client", "templates", "styles"),
+			vscode.Uri.joinPath(this.config.getExtensionUri(), 	"client", "templates", "js")
+		];
+
+		// Создаем новое окно
+		this._view = vscode.window.createWebviewPanel(
+			CategorizatorViewProvider.viewId, 
+			viewTitle, 
+			vscode.ViewColumn.One, 
+			{
+				retainContextWhenHidden: true,
+				enableScripts: true,
+				enableFindWidget: true,
+				localResourceRoots: resources
+			}
+		);
+
+		this._view.onDidDispose(async (e: void) => {
+			this._view = undefined;
+			// TODO: Возможно подчистить хвосты, если создавали какие-то изменения в файловой системе
+		}, 
+			this);
+
+		// Создаем обработчик входящих сообщений
+		this._view.webview.onDidReceiveMessage(
+			this.recieveMessageFromWebview,
+			this
+		);
+		
+		await this.updateWebView();
 	}
 
 	private async updateWebView(): Promise<void> {
 		if (!this._view) {
 			return;
 		}
-		const categorizatorHtml = this._formatter.format({});
 
+		Log.debug(`WebView ${CategorizatorViewProvider.name} была загружена/обновлена.`);
+
+		const resourcesUri = this.config.getExtensionUri();
+		const extensionBaseUri = this._view.webview.asWebviewUri(resourcesUri);
+
+		const webviewUri = this.getUri(this._view.webview, this.config.getExtensionUri(), ["client", "out", "ui.js"]);
+
+
+		const plain = {
+			"IntegrationTests": [],
+			"ExtensionBaseUri": extensionBaseUri,
+			"RuleName": this.rule.getName(),
+
+			// Локализация вьюшки
+			"Locale" : {
+				"NextStep": this.config.getMessage("View.Categorizator.NextStep"),
+				"PreviousStep": this.config.getMessage("View.Categorizator.PreviousStep"),
+				"Save" : this.config.getMessage('View.Categorizator.Save'),
+				"GategorizationProcess": this.config.getMessage("View.Categorizator.GategorizationProcess"),
+				"ChooseValue": this.config.getMessage("View.Categorizator.ChooseValue"),
+				"ValueDescription": this.config.getMessage("View.Categorizator.ValueDescription")
+			}
+		};
+		const template = await FileSystemHelper.readContentFile(this._templatePath);
+		const formatter = new MustacheFormatter(template);
+		const htmlContent = formatter.format(plain);
+		this._view.webview.html = htmlContent;
+	}
+
+	private async recieveMessageFromWebview(message: any) {
+		// TODO: Добавить обработчик событий приходящих из вьюшки
+		return false;
+	}
+
+	private getUri(webview: vscode.Webview, extensionUri: vscode.Uri, pathList: string[]) {
+		return webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, ...pathList));
 	}
 }

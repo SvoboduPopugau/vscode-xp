@@ -153,5 +153,13 @@
     "View.CreateRule.CreateAggregationHeader": "Create aggregation rule",
     
     "View.CreateRule.Template": "Template",
-    "View.CreateRule.NameLabel": "Name"
+    "View.CreateRule.NameLabel": "Name", 
+
+    "View.Categorizator.Title": "Categorization wizard for {0}",
+    "View.Categorizator.NextStep": "Next",
+    "View.Categorizator.PreviousStep": "Previous",
+    "View.Categorizator.Save": "Save",
+    "View.Categorizator.GategorizationProcess": "Categorization process",
+    "View.Categorizator.ChooseValue": "Choose the most suitable value",
+    "View.Categorizator.ValueDescription": "Description of the value"
 }

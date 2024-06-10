@@ -393,6 +393,11 @@
           "group": "Normalization@2"
         },
         {
+          "command": "CategorizationView.showCategorizator",
+          "when": "view == KnowledgebaseTree && viewItem  == Normalization",
+          "group": "Normalization@2"
+        },
+        {
           "command": "IntegrationTestEditorView.showEditor",
           "when": "view == KnowledgebaseTree && viewItem == Enrichment",
           "group": "Enrichment@1"
@@ -740,6 +745,11 @@
       {
         "command": "xp.contentTree.verifyFolder",
         "title": "%xp.views.knowledgebaseTree.verifyFolderCommand%",
+        "category": "%xp.commonCommandCategory%"
+      },
+      {
+        "command": "CategorizationView.showCategorizator",
+        "title": "%xp.views.knowledgebaseTree.showCategorizationWizard%",
         "category": "%xp.commonCommandCategory%"
       }
     ],
