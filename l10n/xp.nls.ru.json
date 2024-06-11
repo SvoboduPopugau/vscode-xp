@@ -161,5 +161,6 @@
     "View.Categorizator.Save": "Сохранить",
     "View.Categorizator.GategorizationProcess": "Процесс категоризации",
     "View.Categorizator.ChooseValue": "Выберите наиболее подходящий вариант",
-    "View.Categorizator.ValueDescription": "Описание выбранного варианта"
+    "View.Categorizator.ValueDescription": "Описание выбранного варианта",
+    "View.Categorizator.Error.EmptyValue":  "Пожалуйста, выберите значение перед продолжением"
 }

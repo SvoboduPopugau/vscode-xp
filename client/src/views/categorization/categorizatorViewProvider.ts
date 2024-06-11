@@ -9,6 +9,8 @@ import { Normalization } from '../../models/content/normalization';
 import { DialogHelper } from '../../helpers/dialogHelper';
 import { Log } from '../../extension';
 import { FileSystemHelper } from '../../helpers/fileSystemHelper';
+import { ExtensionState  } from '../../models/applicationState';
+import { ExceptionHelper } from '../../helpers/exceptionHelper';
 
 export class CategorizatorViewProvider {
 
@@ -101,7 +103,9 @@ export class CategorizatorViewProvider {
 
 		// Создаем обработчик входящих сообщений
 		this._view.webview.onDidReceiveMessage(
-			this.recieveMessageFromWebview,
+			(message) => {
+				this.recieveMessageFromWebview(message);
+			},
 			this
 		);
 		
@@ -143,8 +147,67 @@ export class CategorizatorViewProvider {
 	}
 
 	private async recieveMessageFromWebview(message: any) {
-		// TODO: Добавить обработчик событий приходящих из вьюшки
-		return false;
+
+		if (ExtensionState.get().isExecutedState()) {
+			DialogHelper.showWarning(
+				Configuration.get().getMessage("WaitForCommandToFinishExecuting")
+			);
+			return true;
+		}
+
+		try {
+			
+			ExtensionState.get().startExecutionState();
+			await this.executeCommand(message);
+		}
+		catch (error) {
+			ExceptionHelper.show(error, `Ошибка выполнения команды '${message.command}'`);
+			return true;
+		}
+		finally {
+			ExtensionState.get().stopExecutionState();
+		}
+	}
+
+	private async executeCommand(message: any){
+		switch (message.command)  {
+			case 'showError':  {
+				const error = this.config.getMessage(`View.Categorizator.Error.${message.value}`);
+				vscode.window.showErrorMessage(error);
+				break;
+			}
+			case 'getDesctiption': {
+				// TODO: Нужно брать описание нужного нам значения у TreeWalker 
+				var description = `Описание нашего, горячо любимого ${message.value}`
+
+				await this.updateDescription(description);
+				break;
+			}
+			case 'nextStep': {
+				// TODO: Нужно брать имя домена и его возможные значения у TreeWalker
+				const domainName = `DomainName`;
+				const values = ['Узел 1', 'Узел 2', 'Узел 3', 'Узел 4',  'Узел 5'];
+
+				await this.nextStep(domainName, values);
+				break;
+			}
+		}
+		return;
+	}
+
+	public async updateDescription(value: string): Promise<boolean>  {
+		return this._view.webview.postMessage({
+			'command':  'updateDescription',
+			'value': value
+			});
+	}
+
+	public async nextStep(domainName: string, values: string[]): Promise<boolean>  	{
+		return this._view.webview.postMessage({
+			'command':  'nextStep',
+			'domain': domainName,
+			'values': values
+			});
 	}
 
 	private getUri(webview: vscode.Webview, extensionUri: vscode.Uri, pathList: string[]) {

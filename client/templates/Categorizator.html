@@ -14,35 +14,40 @@
 		<!-- Common Panel -->
 		<div id="header">
 			<div id="navigation">
+				<input id="prev_step" class="navigate" type="button" value="{{Locale.PreviousStep}}">
 				<input id="next_step" class="navigate" type="button" value="{{Locale.NextStep}}">
-				<input id="previous_step" class="navigate" type="button" value="{{Locale.PreviousStep}}">
 				<input id="save_category" class="save" type="button" value="{{Locale.Save}}">
 			</div>
 		</div>
 
 		<div class="container">
-			<div class="section process" id="textSection">
+			<!-- Categorization Process Section -->
+			<div class="section process" id="section_process">
 				<p class="section-p">{{Locale.GategorizationProcess}}</p>
-				<textarea rows="100" cols="100" readonly>Здесь отображаем выбранные категории
-				</textarea>
+				<!-- <label for="raws_input">raws:</label> -->
+				<!-- <input type="text" id="raws_input" class="raws-input" name="raws_input"> -->
+				<textarea id="textarea_process" rows="100" cols="100" readonly></textarea>
 			</div>
-			<div class="section options" id="radioSection">
+
+			<!-- Options Section -->
+			<div class="section options" id="section_options">
 				<p class="section-p">{{Locale.ChooseValue}}</p>
-				<form id="OptionsForm">
-				<input type="radio" id="option1" name="option" value="option1">
-				<label for="option1">Вариант 1</label><p></p>
+				<form id="form_options">
+				<input type="radio" name="option" value="option1">
+				<label>Вариант 1</label><p></p>
 		
-				<input type="radio" id="option2" name="option" value="option2">
-				<label for="option2">Вариант 2</label><p></p>
+				<input type="radio" name="option" value="option2">
+				<label>Вариант 2</label><p></p>
 		
-				<input type="radio" id="option3" name="option" value="option3">
-				<label for="option3">Вариант 3</label><p></p>
+				<input type="radio" name="option" value="option3">
+				<label>Вариант 3</label><p></p>
 				</form>
 			</div>
-			<div class="section description" id="dynamicTextSection">
+
+			<!-- Description Section -->
+			<div class="section description" id="section_description">
 				<p class="section-p">{{Locale.ValueDescription}}</p>
-				<textarea id="description" rows="100" cols="100" readonly>*Подробное описание в зависимости от выбранного пункта*
-				</textarea>
+				<textarea id="textarea_description" rows="100" cols="100" readonly>*Подробное описание в зависимости от выбранного пункта*</textarea>
 			</div>
 		</div>
 		
@@ -58,13 +63,60 @@
 
 		<script>
 			// Глобальное определение переменных.
-			const redos = [];
-			const undos = [];
 			const vscode = acquireVsCodeApi();
+
+			window.addEventListener(
+				'message',
+				(event) => {
+					console.log('event:', event);
+
+					const message = event.data; 
+					switch (message.command) {
+						case 'updateDescription': {
+							change_textarea('textarea_description', message.value);
+							break;
+						}
+						case 'nextStep': {
+							clear_textarea('textarea_description')
+							update_options('form_options', message.domain, message.values)
+							break;
+						}
+					}
+				}
+			)
 			
-			document.getElementById("option1").addEventListener("change", function() {
-				create_option("OptionsForm", "option4", "Новый вариант для выбора");
+			$('#form_options').on('change', ' input[type="radio"]', function() {
+			    const selectedValue = $(this).val();
+				const selectedDomain = $(this).attr('name');
+
+				vscode.postMessage({
+					'command': 'getDesctiption',
+					'domain':  selectedDomain,
+					'value': selectedValue
+				})
 			});
+
+
+			$('#next_step').click(function() {
+				const selectedRadio = $('#form_options input[type="radio"]:checked');
+
+			    if (selectedRadio.length === 0) {
+			        showErrorMessage('EmptyValue');
+			        return;
+			    }
+			
+			    const selectedValue = selectedRadio.val();
+			    const selectedDomain = selectedRadio.attr('name');
+			
+
+				append_textarea('textarea_process', `${selectedDomain}: ${selectedValue}\n`)
+
+				vscode.postMessage({
+					'command': 'nextStep',
+					'domain': selectedDomain,
+					'value': selectedValue
+				})
+			})
 
 		</script>		
 	</body>

@@ -161,5 +161,6 @@
     "View.Categorizator.Save": "Save",
     "View.Categorizator.GategorizationProcess": "Categorization process",
     "View.Categorizator.ChooseValue": "Choose the most suitable value",
-    "View.Categorizator.ValueDescription": "Description of the value"
+    "View.Categorizator.ValueDescription": "Description of the value",
+    "View.Categorizator.Error.EmptyValue":  "Please select a value before continuing"
 }
