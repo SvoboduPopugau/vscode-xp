@@ -58,7 +58,13 @@ function update_options(formId, name, values)  {
  * @param {string} value 
  */
 function append_textarea(areaId, value)  {
-	$('#'  + areaId).append(value);
+    var text = $('#'+areaId).val();
+    if (text  ==  '')  {
+        text +=  value;
+    } else {
+        text += '\n' + value;
+    }
+    $('#'  + areaId).val(text);
 }
 
 /**
@@ -78,12 +84,14 @@ function change_textarea(areaId, value)  {
 	$('#'  + areaId).val(value);
 }
 
-function remove_last_line_from_textarea(areaId) {
+function pop_line_from_textarea(areaId) {
     const textarea = $(`#${areaId}`);
     const text = textarea.val();
+    console.log(text);
 
     if (text.length > 0) {
         const lines = text.split('\n');
+        console.log(lines);
         var lastline = lines.pop(); // Удаление последней строки
         const newText = lines.join('\n');
         textarea.val(newText);

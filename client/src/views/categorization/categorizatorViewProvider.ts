@@ -191,6 +191,14 @@ export class CategorizatorViewProvider {
 				await this.nextStep(domainName, values);
 				break;
 			}
+			case 'prevStep': {
+				//TODO: Нужно брать данные для прошлого узла у TreeWalker
+				const domainName  = `Previous DomainName`;
+				const values  = ['Previous Узел 1',  'Previous Узел 2',  'Previous Узел 3',  'Previous Узел 4',   'Previous Узел 5'];
+
+				await this.prevStep(domainName, values);
+				break;
+			}
 		}
 		return;
 	}
@@ -205,6 +213,14 @@ export class CategorizatorViewProvider {
 	public async nextStep(domainName: string, values: string[]): Promise<boolean>  	{
 		return this._view.webview.postMessage({
 			'command':  'nextStep',
+			'domain': domainName,
+			'values': values
+			});
+	}
+
+	public async prevStep(domainName: string, values: string[]): Promise<boolean>  	{
+		return this._view.webview.postMessage({
+			'command':  'prevStep',
 			'domain': domainName,
 			'values': values
 			});

@@ -81,6 +81,10 @@
 							update_options('form_options', message.domain, message.values)
 							break;
 						}
+						case 'prevStep': {
+							clear_textarea('textarea_description')
+							update_options('form_options', message.domain, message.values)
+						}
 					}
 				}
 			)
@@ -109,13 +113,30 @@
 			    const selectedDomain = selectedRadio.attr('name');
 			
 
-				append_textarea('textarea_process', `${selectedDomain}: ${selectedValue}\n`)
-
+				append_textarea('textarea_process', `${selectedDomain}: ${selectedValue}`)
+				
 				vscode.postMessage({
 					'command': 'nextStep',
 					'domain': selectedDomain,
 					'value': selectedValue
 				})
+			})
+
+			$('#prev_step').click(function() {
+				var process_state = $('#textarea_process').val()
+				
+				if (process_state.length == 0) {
+					showErrorMessage('StartState')
+				}
+
+				const lastline = pop_line_from_textarea('textarea_process')
+				console.log('lastline: ',lastline)
+
+				vscode.postMessage({
+					'command': 'prevStep',
+					'domain': lastline.domain,
+					'value': lastline.value
+				})				
 			})
 
 		</script>		

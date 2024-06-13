@@ -162,5 +162,6 @@
     "View.Categorizator.GategorizationProcess": "Categorization process",
     "View.Categorizator.ChooseValue": "Choose the most suitable value",
     "View.Categorizator.ValueDescription": "Description of the value",
-    "View.Categorizator.Error.EmptyValue":  "Please select a value before continuing"
+    "View.Categorizator.Error.EmptyValue":  "Select a value to proceed",
+    "View.Categorizator.Error.StartState":  "The categorization wizard is already in its initial state"
 }
