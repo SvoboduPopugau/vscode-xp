@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as os from 'os'
 
 import {Configuration} from "../../models/configuration" 
 import { RuleBaseItem } from '../../models/content/ruleBaseItem';
@@ -15,12 +16,11 @@ import { ExceptionHelper } from '../../helpers/exceptionHelper';
 export class CategorizatorViewProvider {
 
 	public static readonly viewId = 'CategorizationView';
-	public static showCategorizatorCommand = "CategorizationView.showCategorizator";
+	public static showCategorizatorCommand = 'CategorizationView.showCategorizator';
+	private static categoryBorder = '########';
 
 	private _view?: vscode.WebviewPanel;
-	private rule: RuleBaseItem;
-
-	
+	private rule: Normalization;
 
 
 	constructor(
@@ -117,7 +117,7 @@ export class CategorizatorViewProvider {
 			return;
 		}
 
-		Log.debug(`WebView ${CategorizatorViewProvider.name} была загружена/обновлена.`);
+		Log.info(`WebView ${CategorizatorViewProvider.name} была загружена/обновлена.`);
 
 		const resourcesUri = this.config.getExtensionUri();
 		const extensionBaseUri = this._view.webview.asWebviewUri(resourcesUri);
@@ -126,9 +126,11 @@ export class CategorizatorViewProvider {
 
 
 		const plain = {
-			"IntegrationTests": [],
 			"ExtensionBaseUri": extensionBaseUri,
 			"RuleName": this.rule.getName(),
+			// TODO:  Добавить, что мы тут передаем какой-то шагкатегоризации
+			"DomainName": "FirstOption",
+			"options": ["firstOption1", "firstOption2", "firstOption3"],
 
 			// Локализация вьюшки
 			"Locale" : {
@@ -169,6 +171,9 @@ export class CategorizatorViewProvider {
 		}
 	}
 
+	// TODO: Удалить
+	private counter: number = 0;
+
 	private async executeCommand(message: any){
 		switch (message.command)  {
 			case 'showError':  {
@@ -177,7 +182,7 @@ export class CategorizatorViewProvider {
 				break;
 			}
 			case 'getDesctiption': {
-				// TODO: Нужно брать описание нужного нам значения у TreeWalker 
+				// TODO: Нужно брать описание нужного нам значения у TreeWalker и как-то захардкодить это описание для номеров тестов
 				var description = `Описание нашего, горячо любимого ${message.value}`
 
 				await this.updateDescription(description);
@@ -185,10 +190,19 @@ export class CategorizatorViewProvider {
 			}
 			case 'nextStep': {
 				// TODO: Нужно брать имя домена и его возможные значения у TreeWalker
-				const domainName = `DomainName`;
-				const values = ['Узел 1', 'Узел 2', 'Узел 3', 'Узел 4',  'Узел 5'];
+				var domainName = '';
+				var values = [];
+
+				if (this.counter < 2) {
+					domainName = `DomainName`;
+					values = ['Узел 1', 'Узел 2', 'Узел 3', 'Узел 4',  'Узел 5'];
+				} else {
+					domainName = `raws`;
+					values = ['1', '2', '3', '4',  '5'];
+				}
 
 				await this.nextStep(domainName, values);
+				this.counter++;
 				break;
 			}
 			case 'prevStep': {
@@ -197,6 +211,16 @@ export class CategorizatorViewProvider {
 				const values  = ['Previous Узел 1',  'Previous Узел 2',  'Previous Узел 3',  'Previous Узел 4',   'Previous Узел 5'];
 
 				await this.prevStep(domainName, values);
+				break;
+			}
+			case 'saveCategory': {
+				const category_text = message.value;
+				await this.saveCategory(category_text);
+				// BUG: ПОЧЕМУ ТЫ, ТВАРЬ, не обновляешься?!
+				// Не обновляется потому, что изменен DOM объект и он остается при своих. 
+				// Нужно отдельную команду на вьюшку, чтобы приводить ее в состояние выбора теста и в начальное состояние после сохранения
+				await this.updateWebView();
+				// TODO: Уведомить, что все сохранилось успешно
 				break;
 			}
 		}
@@ -224,6 +248,21 @@ export class CategorizatorViewProvider {
 			'domain': domainName,
 			'values': values
 			});
+	}
+
+	public async saveCategory(category: string): Promise<void>  {
+		const converted_category = CategorizatorViewProvider.convertCategoryText(category)
+		this.rule.addCategorization(converted_category);
+		await this.rule.saveMetaInfoAndLocalizations();
+	}
+
+	private static convertCategoryText(text: string): string  {
+		var lines = text.split(/\r?\n/);
+		Log.info(String(lines.length));
+		lines = lines.map(line => '# ' + line);
+		lines.unshift(this.categoryBorder);
+		lines.push(this.categoryBorder);
+		return lines.join(os.EOL);
 	}
 
 	private getUri(webview: vscode.Webview, extensionUri: vscode.Uri, pathList: string[]) {

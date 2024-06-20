@@ -36,12 +36,13 @@ export class MetaInfo {
 		metaInfo.setDirectoryPath(ruleDirFullPath);
 
 		// Yaml comments parsing
-		const commentsResult = /^########$[\s\S]+^########$/gm.exec(yamlContent);
-		if(!commentsResult || commentsResult.length !== 1) {
+		const commentsResult = yamlContent.match(/^########$[\s\S]+?^########$/gm);
+		// const commentsResult = /^########$[\s\S]+?^########$/gm.exec(yamlContent);
+		if(!commentsResult) {
 			return metaInfo;
 		}
 
-		const comments = commentsResult[0];
+		const comments = commentsResult.join(os.EOL);
 		metaInfo.setComments(comments);
 		return metaInfo;
 	}

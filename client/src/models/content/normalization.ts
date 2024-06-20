@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
+import * as os from  'os';
 
 import { RuleBaseItem } from './ruleBaseItem';
 import { MetaInfo } from '../metaInfo/metaInfo';
@@ -208,6 +209,12 @@ export class Normalization extends RuleBaseItem {
 		});
 
 		return normalization;
+	}
+
+	public addCategorization(category: string): void {
+		var categories = this.getMetaInfo().getComments();
+		categories += os.EOL + category;
+		this.getMetaInfo().setComments(categories);
 	}
 
 	contextValue = 'Normalization';

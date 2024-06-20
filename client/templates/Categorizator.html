@@ -65,6 +65,10 @@
 			// Глобальное определение переменных.
 			const vscode = acquireVsCodeApi();
 
+			var options = '{{options}}'
+			var domain = '{{DomainName}}'
+			$('#textarea_description').val(domain + ':' + options)
+
 			window.addEventListener(
 				'message',
 				(event) => {
@@ -109,8 +113,8 @@
 			        return;
 			    }
 			
-			    const selectedValue = selectedRadio.val();
 			    const selectedDomain = selectedRadio.attr('name');
+			    const selectedValue = selectedRadio.val();
 			
 
 				append_textarea('textarea_process', `${selectedDomain}: ${selectedValue}`)
@@ -130,13 +134,24 @@
 				}
 
 				const lastline = pop_line_from_textarea('textarea_process')
-				console.log('lastline: ',lastline)
 
 				vscode.postMessage({
 					'command': 'prevStep',
 					'domain': lastline.domain,
 					'value': lastline.value
 				})				
+			})
+
+			$('#save_category').click(function() {
+				if (is_category_done('textarea_process')) {
+					vscode.postMessage({
+						'command': 'saveCategory',
+						'domain': null,
+						'value': String($('#textarea_process').val())
+					})
+				} else {
+					showErrorMessage('IncompleteCategory')
+				}
 			})
 
 		</script>		

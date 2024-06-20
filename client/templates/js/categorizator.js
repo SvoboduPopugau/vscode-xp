@@ -57,14 +57,19 @@ function update_options(formId, name, values)  {
  * @param {string} areaId 
  * @param {string} value 
  */
-function append_textarea(areaId, value)  {
-    var text = $('#'+areaId).val();
-    if (text  ==  '')  {
+function append_textarea(areaId, value) {
+    var text = $('#' + areaId).val();
+    if (text  ==  '') {
         text +=  value;
+        console.log(text);
+    } else if (value.includes('raws:')) {
+        text = value + '\n' + text;
+        console.log(text);
     } else {
         text += '\n' + value;
+        console.log(text);
     }
-    $('#'  + areaId).val(text);
+    $('#' + areaId).val(text);
 }
 
 /**
@@ -81,17 +86,15 @@ function clear_textarea(areaId) {
  * @param {string} value 
  */
 function change_textarea(areaId, value)  {
-	$('#'  + areaId).val(value);
+	$('#' + areaId).val(value);
 }
 
 function pop_line_from_textarea(areaId) {
-    const textarea = $(`#${areaId}`);
+    const textarea = $('#' + areaId);
     const text = textarea.val();
-    console.log(text);
 
     if (text.length > 0) {
         const lines = text.split('\n');
-        console.log(lines);
         var lastline = lines.pop(); // Удаление последней строки
         const newText = lines.join('\n');
         textarea.val(newText);
@@ -100,4 +103,19 @@ function pop_line_from_textarea(areaId) {
     const domain = lastline[0];
     const value = lastline[1];
     return { domain, value };
+}
+
+function is_category_done(areaId)  {
+    const textarea  =  $('#' + areaId);
+    const text  = textarea.val();
+
+    if (text.length  >  0)  {
+        const lines = text.split('\n');
+        var firstline = lines[0];
+
+        if (firstline.includes('raws:')) {
+            return true;
+        }
+    }
+    return false;
 }
