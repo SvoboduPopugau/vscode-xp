@@ -164,5 +164,6 @@
     "View.Categorizator.ValueDescription": "Description of the value",
     "View.Categorizator.Error.EmptyValue":  "Select a value to proceed",
     "View.Categorizator.Error.StartState":  "The categorization wizard is already in its initial state",
-    "View.Categorizator.Error.IncompleteCategory":  "Categorization is not complete"
+    "View.Categorizator.Error.IncompleteCategory":  "Categorization is not complete",
+    "View.Categorizator.Info.CategorySaved": "Category successfully saved"
 }

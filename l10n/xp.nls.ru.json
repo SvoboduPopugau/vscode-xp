@@ -164,5 +164,6 @@
     "View.Categorizator.ValueDescription": "Описание выбранного варианта",
     "View.Categorizator.Error.EmptyValue":  "Выберите значение чтобы продолжить",
     "View.Categorizator.Error.StartState":  "Мастер категоризации уже в исходном состоянии",
-    "View.Categorizator.Error.IncompleteCategory":  "Категоризация не завершена"
+    "View.Categorizator.Error.IncompleteCategory":  "Категоризация не завершена",
+    "View.Categorizator.Info.CategorySaved": "Категория успешно сохранена"
 }

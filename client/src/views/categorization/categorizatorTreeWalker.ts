@@ -1,7 +1,14 @@
-import common from './common';
-import sys from 'sys';
+import * as fs from 'fs';
+import * as process from 'process';
+import { Log } from '../../extension';
 
-class TreeObject {
+
+function loadJSON(filePath: string): any {
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(fileContent);
+}
+
+export class TreeObject {
     id: number;
     domain: string | null;
     short_desc: string | null;
@@ -12,17 +19,17 @@ class TreeObject {
     level: string | null;
     datasets: any[] | null;
 
-    constructor(objects: any, id: number) {
-        this.id = id;
-        this.domain = objects[id].get('DomainName', null);
-        this.short_desc = objects[id].get('ShortDescription', null);
-        this.full_desc = objects[id].get('FullDescription', null);
-        this.notes = objects[id].get('Notes', null);
-        this.examples = objects[id].get('Examples', null);
-        this.requirements = objects[id].get('Requirements', null);
-        this.level = objects[id].get('Level', null);
-        this.datasets = objects[id].get('Datasets', null);
-    }
+	constructor(objects: any, id: number) {
+		this.id = id;
+		this.domain = objects[id]['DomainName'];
+		this.short_desc = objects[id]['ShortDescription'];
+		this.full_desc = objects[id]['FullDescription'];
+		this.notes = objects[id]['Notes'];
+		this.examples = objects[id]['Examples'];
+		this.requirements = objects[id]['Requirements'];
+		this.level = objects[id]['Level'];
+		this.datasets = objects[id]['Datasets'];
+	}
 
     equals(other: TreeObject): boolean {
         return (
@@ -42,7 +49,7 @@ class TreeObject {
     }
 }
 
-class TreeWalker {
+export class TreeWalker {
     current_element_id = 0;
     choosen_categories_sorted: TreeObject[] = [];
 
@@ -52,10 +59,10 @@ class TreeWalker {
     datasets: any;
     levels_metainfo: any;
 
-    constructor(tree: string) {
-        const treeData = common.load_json(tree);
+    constructor(path: string) {
+        const treeData = loadJSON(path);
         if (!treeData || !treeData.tree || !treeData.objects) {
-            console.error('[ERROR] Wrong tree format');
+            Log.error('[ERROR] Wrong tree format');
             process.exit(1);
         }
 
@@ -107,7 +114,7 @@ class TreeWalker {
                     subtree = subtree[idList.indexOf(obj.id)].subtrees;
                 }
             } else {
-                console.error(`[ERROR] Can not find categorization branch ${obj.id}! Try to return to the last correct branch.`);
+                Log.error(`[ERROR] Can not find categorization branch ${obj.id}! Try to return to the last correct branch.`);
                 this.reset_to_step(obj.level);
                 break;
             }
@@ -120,7 +127,7 @@ class TreeWalker {
         const objList: TreeObject[] = [];
         for (const obj of this.current_subtree) {
             if (!this.objects[obj.id]) {
-                console.error(`[ERROR] Can not find id ${obj.id} in tree objects list`);
+                Log.error(`[ERROR] Can not find id ${obj.id} in tree objects list`);
             }
 
             objList.push(new TreeObject(this.objects, obj.id));
@@ -128,6 +135,23 @@ class TreeWalker {
 
         return objList;
     }
+
+	get domain_names(): string[] {
+		return this.current_step_list.map((element: TreeObject) => element.domain);
+	}
+
+	get_domain_full_description(domainName: string | false = false): string | null {
+		var foundElement = this.current_element;
+		if  (domainName){
+			foundElement = this.current_step_list.find((element: TreeObject) => element.domain === domainName);
+		}
+		if (foundElement) {
+			return foundElement.full_desc;
+		} else {
+			console.error(`[ERROR] Can not find domain with name ${domainName}`);
+			return null;
+		}
+	}
 
     choose(choice: number | false = false): void {
         if (choice && choice < this.current_step_list.length) {
@@ -138,6 +162,18 @@ class TreeWalker {
         this.current_element_id = 0;
     }
 
+	choose_by_domain(domainName: string): boolean {
+		const foundElement = this.current_step_list.find((element: TreeObject) => element.domain === domainName);
+		if (foundElement) {
+			this.current_element_id = this.current_step_list.indexOf(foundElement);
+			this.choosen_categories_sorted.push(foundElement);
+			return true;
+		} else {
+			console.error(`[ERROR] Can not find domain with name ${domainName}`);
+			return false;
+		}
+	}
+
     reset(): void {
         this.choosen_categories_sorted = [];
         this.current_element_id = 0;
@@ -146,10 +182,10 @@ class TreeWalker {
     reset_to_step(step: string): void {
         const stepIndex = this.choosen_categories_sorted.findIndex((x: TreeObject) => x.level === step);
         if (stepIndex !== -1) {
-            this.choosen_categories_sorted = this.choosen_categories_sorted.slice(0, stepIndex + 1);
+            this.choosen_categories_sorted = this.choosen_categories_sorted.slice(0, stepIndex);
             this.current_element_id = 0;
         } else {
-            console.error('Incorrect tree level name');
+            Log.error('Incorrect tree level name');
         }
     }
 
@@ -171,7 +207,7 @@ class TreeWalker {
             this.current_element_id = elementIndex;
             return true;
         } else {
-            console.error('There is no such Element in current level of category tree');
+            Log.error('There is no such Element in current level of category tree');
             return false;
         }
     }

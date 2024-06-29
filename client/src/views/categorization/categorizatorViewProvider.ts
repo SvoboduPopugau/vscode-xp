@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as os from 'os'
 
-import {Configuration} from "../../models/configuration" 
+import { Configuration } from "../../models/configuration" 
 import { RuleBaseItem } from '../../models/content/ruleBaseItem';
 import { MustacheFormatter } from '../mustacheFormatter';
 import { Normalization } from '../../models/content/normalization';
@@ -12,6 +12,7 @@ import { Log } from '../../extension';
 import { FileSystemHelper } from '../../helpers/fileSystemHelper';
 import { ExtensionState  } from '../../models/applicationState';
 import { ExceptionHelper } from '../../helpers/exceptionHelper';
+import { TreeWalker } from './categorizatorTreeWalker'
 
 export class CategorizatorViewProvider {
 
@@ -21,12 +22,15 @@ export class CategorizatorViewProvider {
 
 	private _view?: vscode.WebviewPanel;
 	private rule: Normalization;
+	private _treeWalker: TreeWalker;
 
 
 	constructor(
 		private readonly config: Configuration,
 		private readonly _templatePath: string,
-	) { }
+	) { 
+		this._treeWalker = new TreeWalker(path.join(this.config.getExtensionPath(), "client",  "src", "views", "categorization", "categorization_tree.json"))
+	  }
 
 
 	public static init(config: Configuration): void {
@@ -128,9 +132,8 @@ export class CategorizatorViewProvider {
 		const plain = {
 			"ExtensionBaseUri": extensionBaseUri,
 			"RuleName": this.rule.getName(),
-			// TODO:  Добавить, что мы тут передаем какой-то шагкатегоризации
-			"DomainName": "FirstOption",
-			"options": ["firstOption1", "firstOption2", "firstOption3"],
+			"LevelName": this._treeWalker.current_step,
+			"domains": encodeURIComponent(this._treeWalker.domain_names.join('|')),
 
 			// Локализация вьюшки
 			"Locale" : {
@@ -171,9 +174,6 @@ export class CategorizatorViewProvider {
 		}
 	}
 
-	// TODO: Удалить
-	private counter: number = 0;
-
 	private async executeCommand(message: any){
 		switch (message.command)  {
 			case 'showError':  {
@@ -182,45 +182,52 @@ export class CategorizatorViewProvider {
 				break;
 			}
 			case 'getDesctiption': {
-				// TODO: Нужно брать описание нужного нам значения у TreeWalker и как-то захардкодить это описание для номеров тестов
-				var description = `Описание нашего, горячо любимого ${message.value}`
+				var description = '';
+				if (message.domain != 'raws'){
+					description = this._treeWalker.get_domain_full_description(message.value);
+				} else {
+					description = `Категория относится к тесту нормализации №${message.value}`;
+				}
 
 				await this.updateDescription(description);
 				break;
 			}
 			case 'nextStep': {
-				// TODO: Нужно брать имя домена и его возможные значения у TreeWalker
-				var domainName = '';
-				var values = [];
-
-				if (this.counter < 2) {
-					domainName = `DomainName`;
-					values = ['Узел 1', 'Узел 2', 'Узел 3', 'Узел 4',  'Узел 5'];
-				} else {
-					domainName = `raws`;
-					values = ['1', '2', '3', '4',  '5'];
+				var level = '';
+				var domains = [];
+				if (message.domain!= 'raws'){
+					this._treeWalker.choose_by_domain(message.value);
 				}
 
-				await this.nextStep(domainName, values);
-				this.counter++;
+				if (this._treeWalker.current_step != 'Finish') {
+					level = this._treeWalker.current_step;
+					domains = this._treeWalker.domain_names;
+				} else if (message.domain != 'raws') {
+					level = `raws`;
+					domains = this.range(1, this.rule.getUnitTests().length).map(String)
+				}
+
+				await this.nextStep(level, domains);
 				break;
 			}
+			// BUG: После того, как выбрали равку при нажатии на кнопку назад у нас убирается не равка, а уровень категории, 
+			// и потом мы обратно сможем вернуться на выбор равки, но тогда их будет две - непорядок
 			case 'prevStep': {
-				//TODO: Нужно брать данные для прошлого узла у TreeWalker
-				const domainName  = `Previous DomainName`;
-				const values  = ['Previous Узел 1',  'Previous Узел 2',  'Previous Узел 3',  'Previous Узел 4',   'Previous Узел 5'];
+				this._treeWalker.reset_to_step(message.domain);
 
-				await this.prevStep(domainName, values);
+				const level = this._treeWalker.current_step;
+				const domains  = this._treeWalker.domain_names;
+
+				await this.prevStep(level, domains);
 				break;
 			}
 			case 'saveCategory': {
 				const category_text = message.value;
 				await this.saveCategory(category_text);
-				// BUG: ПОЧЕМУ ТЫ, ТВАРЬ, не обновляешься?!
-				// Не обновляется потому, что изменен DOM объект и он остается при своих. 
-				// Нужно отдельную команду на вьюшку, чтобы приводить ее в состояние выбора теста и в начальное состояние после сохранения
-				await this.updateWebView();
-				// TODO: Уведомить, что все сохранилось успешно
+				this._treeWalker.reset();
+
+				this.reset_view();
+				DialogHelper.showInfo(this.config.getMessage('View.Categorizator.Info.CategorySaved'));
 				break;
 			}
 		}
@@ -256,6 +263,12 @@ export class CategorizatorViewProvider {
 		await this.rule.saveMetaInfoAndLocalizations();
 	}
 
+	public async reset_view(): Promise<boolean>   {
+		return this._view.webview.postMessage({
+			'command': 'resetView'
+		});
+	}
+
 	private static convertCategoryText(text: string): string  {
 		var lines = text.split(/\r?\n/);
 		Log.info(String(lines.length));
@@ -263,6 +276,11 @@ export class CategorizatorViewProvider {
 		lines.unshift(this.categoryBorder);
 		lines.push(this.categoryBorder);
 		return lines.join(os.EOL);
+	}
+
+
+	private range(start = 0, end: number): number[] {
+		return Array.from({length: end - start + 1}, (_, i) => start + i);
 	}
 
 	private getUri(webview: vscode.Webview, extensionUri: vscode.Uri, pathList: string[]) {

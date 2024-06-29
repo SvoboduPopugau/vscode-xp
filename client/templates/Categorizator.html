@@ -65,9 +65,9 @@
 			// Глобальное определение переменных.
 			const vscode = acquireVsCodeApi();
 
-			var options = '{{options}}'
-			var domain = '{{DomainName}}'
-			$('#textarea_description').val(domain + ':' + options)
+			const domains = decodeURIComponent('{{domains}}');
+			const level = '{{LevelName}}';
+			update_options('form_options', level, domains.split('|'));
 
 			window.addEventListener(
 				'message',
@@ -88,6 +88,13 @@
 						case 'prevStep': {
 							clear_textarea('textarea_description')
 							update_options('form_options', message.domain, message.values)
+							break;
+						}
+						case 'resetView': {
+							clear_textarea('textarea_process')
+							clear_textarea('textarea_description')
+							update_options('form_options', level, domains.split('|'));
+							break;
 						}
 					}
 				}
