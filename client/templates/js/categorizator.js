@@ -43,7 +43,7 @@ function clear_form(formId) {
  * @param {string} name 
  * @param {Array[string]} values 
  */
-function update_options(formId, name, values)  {
+function update_domains(formId, name, values)  {
 	clear_form(formId);
 
 	for (var i = 0; i < values.length; i++) {
@@ -100,9 +100,25 @@ function pop_line_from_textarea(areaId) {
         textarea.val(newText);
     }
     lastline = lastline.split(': ');
-    const domain = lastline[0];
-    const value = lastline[1];
-    return { domain, value };
+    const level = lastline[0];
+    const domain = lastline[1];
+    return { level, domain };
+}
+
+function shift_line_from_textarea(areaId) {
+    const textarea = $('#' + areaId);
+    const text = textarea.val();
+
+    if (text.length > 0) {
+        const lines = text.split('\n');
+        var firstline = lines.shift(); // Удаление первой строки
+        const newText = lines.join('\n');
+        textarea.val(newText);
+    }
+    firstline = firstline.split(': ');
+    const level = firstline[0];
+    const domain = firstline[1];
+    return { level, domain };
 }
 
 function is_category_done(areaId)  {

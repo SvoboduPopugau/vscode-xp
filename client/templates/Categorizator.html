@@ -32,7 +32,7 @@
 			<!-- Options Section -->
 			<div class="section options" id="section_options">
 				<p class="section-p">{{Locale.ChooseValue}}</p>
-				<form id="form_options">
+				<form id="form_domains">
 				<input type="radio" name="option" value="option1">
 				<label>Вариант 1</label><p></p>
 		
@@ -67,7 +67,7 @@
 
 			const domains = decodeURIComponent('{{domains}}');
 			const level = '{{LevelName}}';
-			update_options('form_options', level, domains.split('|'));
+			update_domains('form_domains', level, domains.split('|'));
 
 			window.addEventListener(
 				'message',
@@ -82,78 +82,83 @@
 						}
 						case 'nextStep': {
 							clear_textarea('textarea_description')
-							update_options('form_options', message.domain, message.values)
+							update_domains('form_domains', message.level, message.domains)
 							break;
 						}
 						case 'prevStep': {
 							clear_textarea('textarea_description')
-							update_options('form_options', message.domain, message.values)
+							update_domains('form_domains', message.level, message.domains)
 							break;
 						}
 						case 'resetView': {
 							clear_textarea('textarea_process')
 							clear_textarea('textarea_description')
-							update_options('form_options', level, domains.split('|'));
+							update_domains('form_domains', level, domains.split('|'));
 							break;
 						}
 					}
 				}
 			)
 			
-			$('#form_options').on('change', ' input[type="radio"]', function() {
-			    const selectedValue = $(this).val();
-				const selectedDomain = $(this).attr('name');
+			$('#form_domains').on('change', ' input[type="radio"]', function() {
+			    const selectedDomain = $(this).val();
+				const selectedLevel = $(this).attr('name');
 
 				vscode.postMessage({
 					'command': 'getDesctiption',
-					'domain':  selectedDomain,
-					'value': selectedValue
+					'level':  selectedLevel,
+					'domain': selectedDomain
 				})
 			});
 
 
 			$('#next_step').click(function() {
-				const selectedRadio = $('#form_options input[type="radio"]:checked');
+				// BUG:Если буду переделывать под Check-box у равок - получим ошибку
+				const selectedRadio = $('#form_domains input[type="radio"]:checked');
 
 			    if (selectedRadio.length === 0) {
 			        showErrorMessage('EmptyValue');
 			        return;
 			    }
 			
-			    const selectedDomain = selectedRadio.attr('name');
-			    const selectedValue = selectedRadio.val();
+			    const selectedLevel = selectedRadio.attr('name');
+			    const selectedDomain = selectedRadio.val();
 			
 
-				append_textarea('textarea_process', `${selectedDomain}: ${selectedValue}`)
+				append_textarea('textarea_process', `${selectedLevel}: ${selectedDomain}`)
 				
 				vscode.postMessage({
 					'command': 'nextStep',
-					'domain': selectedDomain,
-					'value': selectedValue
+					'level': selectedLevel,
+					'domain': selectedDomain
 				})
 			})
 
 			$('#prev_step').click(function() {
+				// BUG: Необходимо выполнить еще проверку на последнем этапе, когда у нас уже выбрали raws:
 				var process_state = $('#textarea_process').val()
 				
 				if (process_state.length == 0) {
 					showErrorMessage('StartState')
 				}
 
-				const lastline = pop_line_from_textarea('textarea_process')
+				if (is_category_done(process_state)) {
+					const lastvalue = pop_line_from_textarea('textarea_process')
+				} else {
+					const lastvalue = shift_line_from_textarea('textarea_process')
+				}
 
 				vscode.postMessage({
 					'command': 'prevStep',
-					'domain': lastline.domain,
-					'value': lastline.value
-				})				
+					'level': lastvalue.level,
+					'domain': lastvalue.domain
+				})
 			})
 
 			$('#save_category').click(function() {
 				if (is_category_done('textarea_process')) {
 					vscode.postMessage({
 						'command': 'saveCategory',
-						'domain': null,
 						'value': String($('#textarea_process').val())
 					})
 				} else {

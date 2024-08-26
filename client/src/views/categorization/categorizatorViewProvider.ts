@@ -13,6 +13,8 @@ import { FileSystemHelper } from '../../helpers/fileSystemHelper';
 import { ExtensionState  } from '../../models/applicationState';
 import { ExceptionHelper } from '../../helpers/exceptionHelper';
 import { TreeWalker } from './categorizatorTreeWalker'
+import { get } from 'http';
+import { categorizationHandler } from './categorizationHandler';
 
 export class CategorizatorViewProvider {
 
@@ -23,13 +25,16 @@ export class CategorizatorViewProvider {
 	private _view?: vscode.WebviewPanel;
 	private rule: Normalization;
 	private _treeWalker: TreeWalker;
+	private _categorizationHandler: categorizationHandler;
 
 
 	constructor(
 		private readonly config: Configuration,
 		private readonly _templatePath: string,
 	) { 
-		this._treeWalker = new TreeWalker(path.join(this.config.getExtensionPath(), "client",  "src", "views", "categorization", "categorization_tree.json"))
+		this._treeWalker = new TreeWalker(
+			path.join(this.config.getExtensionPath(), "client",  "src", "views", "categorization", "categorization_tree.json")
+		)
 	  }
 
 
@@ -79,6 +84,7 @@ export class CategorizatorViewProvider {
 		}
 
 		this.rule = rule;
+		this._categorizationHandler = new categorizationHandler(this.rule);
 
 		const viewTitle = this.config.getMessage("View.Categorizator.Title", this.rule.getName())
 		const resources = [vscode.Uri.joinPath(this.config.getExtensionUri(), "client", "out"),
@@ -182,29 +188,24 @@ export class CategorizatorViewProvider {
 				break;
 			}
 			case 'getDesctiption': {
-				var description = '';
-				if (message.domain != 'raws'){
-					description = this._treeWalker.get_domain_full_description(message.value);
-				} else {
-					description = `Категория относится к тесту нормализации №${message.value}`;
-				}
-
+				const description = this.getDescription(message);
 				await this.updateDescription(description);
 				break;
 			}
 			case 'nextStep': {
 				var level = '';
 				var domains = [];
-				if (message.domain!= 'raws'){
-					this._treeWalker.choose_by_domain(message.value);
+				if (message.level != 'raws'){
+					this._treeWalker.choose_by_domain(message.domain);
 				}
 
 				if (this._treeWalker.current_step != 'Finish') {
 					level = this._treeWalker.current_step;
 					domains = this._treeWalker.domain_names;
-				} else if (message.domain != 'raws') {
+				} else if (message.level != 'raws') {
 					level = `raws`;
-					domains = this.range(1, this.rule.getUnitTests().length).map(String)
+					domains = this.range(1, this.rule.getUnitTests().length).map(String);
+					domains.unshift('all');
 				}
 
 				await this.nextStep(level, domains);
@@ -213,10 +214,17 @@ export class CategorizatorViewProvider {
 			// BUG: После того, как выбрали равку при нажатии на кнопку назад у нас убирается не равка, а уровень категории, 
 			// и потом мы обратно сможем вернуться на выбор равки, но тогда их будет две - непорядок
 			case 'prevStep': {
-				this._treeWalker.reset_to_step(message.domain);
-
-				const level = this._treeWalker.current_step;
-				const domains  = this._treeWalker.domain_names;
+				if (message.level == 'raws') {
+					const level = `raws`;
+					var domains = [];
+					domains = this.range(1, this.rule.getUnitTests().length).map(String);
+					domains.unshift('all');
+				} else {
+					this._treeWalker.reset_to_step(message.level);
+	
+					const level = this._treeWalker.current_step;
+					const domains  = this._treeWalker.domain_names;
+				}
 
 				await this.prevStep(level, domains);
 				break;
@@ -241,19 +249,19 @@ export class CategorizatorViewProvider {
 			});
 	}
 
-	public async nextStep(domainName: string, values: string[]): Promise<boolean>  	{
+	public async nextStep(levelName: string, domains: string[]): Promise<boolean>  	{
 		return this._view.webview.postMessage({
 			'command':  'nextStep',
-			'domain': domainName,
-			'values': values
+			'level': levelName,
+			'domains': domains
 			});
 	}
 
-	public async prevStep(domainName: string, values: string[]): Promise<boolean>  	{
+	public async prevStep(levelName: string, domains: string[]): Promise<boolean>  	{
 		return this._view.webview.postMessage({
 			'command':  'prevStep',
-			'domain': domainName,
-			'values': values
+			'level': levelName,
+			'domains': domains
 			});
 	}
 
@@ -278,6 +286,19 @@ export class CategorizatorViewProvider {
 		return lines.join(os.EOL);
 	}
 
+	private getDescription(message: any): string {
+		var description = '';
+		if (message.level != 'raws'){
+			description = this._treeWalker.get_domain_full_description(message.domain);
+		} else {
+			if (message.domain == 'all'){
+				description = 'Категория относится ко всем тестам нормализации';
+			} else {
+				description = `Категория относится к тесту нормализации №${message.domain}`;
+			}
+		}
+		return description;
+	}
 
 	private range(start = 0, end: number): number[] {
 		return Array.from({length: end - start + 1}, (_, i) => start + i);
