@@ -134,7 +134,6 @@
 			});
 
 			$('#next_step').click(function() {
-				// BUG:Если буду переделывать под Check-box у равок - получим ошибку
 				const selectedRadio = $('#form_domains input[type="radio"]:checked');
 				const selectedCheckboxes = $('#form_domains input[type="checkbox"]:checked');
 
@@ -144,21 +143,18 @@
 			    if (selectedRadio.length === 0 && selectedCheckboxes.length === 0) {
 			        showErrorMessage('EmptyValue');
 			        return;
-			    }else if (selectedRadio.length != 0) {
+			    } else if (selectedRadio.length != 0) {
 					selectedLevel = selectedRadio.attr('name');
 					selectedDomain = selectedRadio.val();
 				} else if (selectedCheckboxes.length != 0) {
-					// BUG: Тут присутствует ошибка доступа к элементам объекта
+					// BUG: Сохраняется возможность выбрать параметры all и через запятую остальные.
 					selectedLevel = selectedCheckboxes.attr('name');
-					var selectedDomains = []
-					selectedCheckboxes.each(function() {
-						selectedDomains.push($(this).val());
-					});
-					selectedDomain = selectedDomains.join(',')
+					selectedDomain = selectedCheckboxes.map(function() {
+        							return $(this).val();
+    								}).get().join(',');
+					selectedDomain = moderate_raws(selectedDomain)
 				}
 
-				console.log(`Найденные значения нажатых кнопок: ${selectedRadio} и ${selectedCheckboxes}`)
-				console.log(selectedLevel + " : " + selectedDomain)
 				append_textarea('textarea_process', `${selectedLevel}: ${selectedDomain}`)
 				
 				vscode.postMessage({

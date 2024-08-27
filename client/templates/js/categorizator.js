@@ -163,3 +163,26 @@ function is_category_done(areaId)  {
     }
     return false;
 }
+
+function moderate_raws(rawsString) {
+    var tests = rawsString.split(',');
+    if (tests[0] == 'all') {
+        tests = tests.slice(0, 1);
+    }else {
+        tests = tests.map(Number);
+        let result = [];
+        let left = tests[0], right = tests[0];
+        for (var i = 1; i < tests.length; i++) {
+            if (tests[i] == right + 1) {
+                right = tests[i];
+            } else {
+                result.push(left == right ? `${left}` : `${left}-${right}`);
+                left = tests[i];
+                right = tests[i];
+            }
+        }
+        result.push(left == right? `${left}` : `${left}-${right}`);
+        tests = result;
+    }
+    return tests.join(',');
+}
