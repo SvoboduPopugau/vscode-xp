@@ -147,7 +147,6 @@
 					selectedLevel = selectedRadio.attr('name');
 					selectedDomain = selectedRadio.val();
 				} else if (selectedCheckboxes.length != 0) {
-					// BUG: Сохраняется возможность выбрать параметры all и через запятую остальные.
 					selectedLevel = selectedCheckboxes.attr('name');
 					selectedDomain = selectedCheckboxes.map(function() {
         							return $(this).val();

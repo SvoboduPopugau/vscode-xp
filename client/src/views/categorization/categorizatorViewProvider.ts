@@ -104,7 +104,6 @@ export class CategorizatorViewProvider {
 
 		this._view.onDidDispose(async (e: void) => {
 			this._view = undefined;
-			// TODO: Возможно подчистить хвосты, если создавали какие-то изменения в файловой системе
 		}, 
 			this);
 
