@@ -6,13 +6,13 @@ function showErrorMessage(message) {
 }
 
 /**
- * Создает элемент 
+ * Создает элемент типа radio
  * 
  * @param {string} formId 
  * @param {string} optionId 
  * @param {string} value 
  */
-function create_option(formId, name, value) {
+function create_radio(formId, name, value) {
     var newRadio = $('<input>', {
         type: 'radio',
         name: name,
@@ -26,6 +26,22 @@ function create_option(formId, name, value) {
     var newP = $('<p>');
 
     $('#' + formId).append(newRadio, newLabel, newP);
+}
+
+function create_checkbox(formId, name, value) {
+    var newCheckbox = $('<input>', {
+        type: 'checkbox',
+        name: name,
+        value: value
+    });
+
+    var newLabel = $('<label>', {
+        text: value
+    });
+
+    var newP = $('<p>');
+
+    $('#' + formId).append(newCheckbox, newLabel, newP);
 }
 
 /**
@@ -43,13 +59,21 @@ function clear_form(formId) {
  * @param {string} name 
  * @param {Array[string]} values 
  */
+// BUG: Если нужно обновлять ответы под raws - добавить ветвление и функционал работы с checkbox 
 function update_domains(formId, name, values)  {
 	clear_form(formId);
 
-	for (var i = 0; i < values.length; i++) {
-		console.log(`Значение новой опции: ${values[i]}`);
-		create_option(formId, name, values[i]);
-	}
+    if (name != 'raws') {
+        for (var i = 0; i < values.length; i++) {
+            console.info(`Значение новой опции: ${values[i]}`);
+            create_radio(formId, name, values[i]);
+        }
+    } else {
+        for (var i = 0; i < values.length; i++) {
+                console.info(`Значение новой опции: ${values[i]}`);
+                create_checkbox(formId, name, values[i]);
+            }
+    }
 }
 
 /**
@@ -92,6 +116,8 @@ function change_textarea(areaId, value)  {
 function pop_line_from_textarea(areaId) {
     const textarea = $('#' + areaId);
     const text = textarea.val();
+    // DELETE ME
+    console.log(textarea + " : " + text)
 
     if (text.length > 0) {
         const lines = text.split('\n');
@@ -108,6 +134,8 @@ function pop_line_from_textarea(areaId) {
 function shift_line_from_textarea(areaId) {
     const textarea = $('#' + areaId);
     const text = textarea.val();
+    // TODO: DELETE ME
+    console.log(textarea + " : " + text)
 
     if (text.length > 0) {
         const lines = text.split('\n');

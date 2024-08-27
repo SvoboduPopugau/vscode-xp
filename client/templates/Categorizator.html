@@ -82,7 +82,18 @@
 						}
 						case 'nextStep': {
 							clear_textarea('textarea_description')
-							update_domains('form_domains', message.level, message.domains)
+							if (message.domains.length == 1) {
+								const selectedLevel = message.level;
+								const selectedDomain = message.domains[0];
+								append_textarea('textarea_process', `${selectedLevel}: ${selectedDomain}`)
+								vscode.postMessage({
+									'command': 'nextStep',
+									'level': selectedLevel,
+									'domain': selectedDomain
+								})
+							} else {
+								update_domains('form_domains', message.level, message.domains);
+							}
 							break;
 						}
 						case 'prevStep': {
@@ -111,20 +122,43 @@
 				})
 			});
 
+			$('#form_domains').on('change', ' input[type="checkbox"]', function() {
+    			const selectedDomain = $(this).val();
+    			const selectedLevel = $(this).attr('name');
+
+    			vscode.postMessage({
+    			    'command': 'getDesctiption',
+    			    'level':  selectedLevel,
+    			    'domain': selectedDomain
+    			})
+			});
 
 			$('#next_step').click(function() {
 				// BUG:Если буду переделывать под Check-box у равок - получим ошибку
 				const selectedRadio = $('#form_domains input[type="radio"]:checked');
+				const selectedCheckboxes = $('#form_domains input[type="checkbox"]:checked');
 
-			    if (selectedRadio.length === 0) {
+				var selectedDomain = '';
+				var selectedLevel = '';
+
+			    if (selectedRadio.length === 0 && selectedCheckboxes.length === 0) {
 			        showErrorMessage('EmptyValue');
 			        return;
-			    }
-			
-			    const selectedLevel = selectedRadio.attr('name');
-			    const selectedDomain = selectedRadio.val();
-			
+			    }else if (selectedRadio.length != 0) {
+					selectedLevel = selectedRadio.attr('name');
+					selectedDomain = selectedRadio.val();
+				} else if (selectedCheckboxes.length != 0) {
+					// BUG: Тут присутствует ошибка доступа к элементам объекта
+					selectedLevel = selectedCheckboxes.attr('name');
+					var selectedDomains = []
+					selectedCheckboxes.each(function() {
+						selectedDomains.push($(this).val());
+					});
+					selectedDomain = selectedDomains.join(',')
+				}
 
+				console.log(`Найденные значения нажатых кнопок: ${selectedRadio} и ${selectedCheckboxes}`)
+				console.log(selectedLevel + " : " + selectedDomain)
 				append_textarea('textarea_process', `${selectedLevel}: ${selectedDomain}`)
 				
 				vscode.postMessage({
@@ -135,18 +169,15 @@
 			})
 
 			$('#prev_step').click(function() {
-				// BUG: Необходимо выполнить еще проверку на последнем этапе, когда у нас уже выбрали raws:
 				var process_state = $('#textarea_process').val()
 				
 				if (process_state.length == 0) {
 					showErrorMessage('StartState')
 				}
 
-				if (is_category_done(process_state)) {
-					const lastvalue = pop_line_from_textarea('textarea_process')
-				} else {
-					const lastvalue = shift_line_from_textarea('textarea_process')
-				}
+				const lastvalue = is_category_done('textarea_process') 
+				?  shift_line_from_textarea('textarea_process') 
+				: pop_line_from_textarea('textarea_process');
 
 				vscode.postMessage({
 					'command': 'prevStep',
@@ -165,7 +196,7 @@
 					showErrorMessage('IncompleteCategory')
 				}
 			})
-
+			//# sourceURL=eventManager.js
 		</script>		
 	</body>
 </html>

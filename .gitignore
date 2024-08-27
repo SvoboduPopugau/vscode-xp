@@ -5,3 +5,4 @@ client/server
 .ai
 Build/
 contract
+client/src/views/categorization/categorization_tree.json

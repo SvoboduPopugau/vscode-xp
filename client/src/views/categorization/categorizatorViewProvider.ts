@@ -4,7 +4,6 @@ import * as vscode from 'vscode';
 import * as os from 'os'
 
 import { Configuration } from "../../models/configuration" 
-import { RuleBaseItem } from '../../models/content/ruleBaseItem';
 import { MustacheFormatter } from '../mustacheFormatter';
 import { Normalization } from '../../models/content/normalization';
 import { DialogHelper } from '../../helpers/dialogHelper';
@@ -13,19 +12,17 @@ import { FileSystemHelper } from '../../helpers/fileSystemHelper';
 import { ExtensionState  } from '../../models/applicationState';
 import { ExceptionHelper } from '../../helpers/exceptionHelper';
 import { TreeWalker } from './categorizatorTreeWalker'
-import { get } from 'http';
-import { categorizationHandler } from './categorizationHandler';
+import { CategorizationHandler } from './categorizationHandler';
 
 export class CategorizatorViewProvider {
 
 	public static readonly viewId = 'CategorizationView';
 	public static showCategorizatorCommand = 'CategorizationView.showCategorizator';
-	private static categoryBorder = '########';
 
 	private _view?: vscode.WebviewPanel;
 	private rule: Normalization;
 	private _treeWalker: TreeWalker;
-	private _categorizationHandler: categorizationHandler;
+	private _categorizationHandler: CategorizationHandler;
 
 
 	constructor(
@@ -84,7 +81,7 @@ export class CategorizatorViewProvider {
 		}
 
 		this.rule = rule;
-		this._categorizationHandler = new categorizationHandler(this.rule);
+		this._categorizationHandler = new CategorizationHandler(this.rule);
 
 		const viewTitle = this.config.getMessage("View.Categorizator.Title", this.rule.getName())
 		const resources = [vscode.Uri.joinPath(this.config.getExtensionUri(), "client", "out"),
@@ -167,7 +164,6 @@ export class CategorizatorViewProvider {
 		}
 
 		try {
-			
 			ExtensionState.get().startExecutionState();
 			await this.executeCommand(message);
 		}
@@ -204,26 +200,23 @@ export class CategorizatorViewProvider {
 					domains = this._treeWalker.domain_names;
 				} else if (message.level != 'raws') {
 					level = `raws`;
-					domains = this.range(1, this.rule.getUnitTests().length).map(String);
-					domains.unshift('all');
+					domains = this._categorizationHandler.rawsDomains;
 				}
 
 				await this.nextStep(level, domains);
 				break;
 			}
-			// BUG: После того, как выбрали равку при нажатии на кнопку назад у нас убирается не равка, а уровень категории, 
-			// и потом мы обратно сможем вернуться на выбор равки, но тогда их будет две - непорядок
 			case 'prevStep': {
+				var level = '';
+				var domains = [];
 				if (message.level == 'raws') {
-					const level = `raws`;
-					var domains = [];
-					domains = this.range(1, this.rule.getUnitTests().length).map(String);
-					domains.unshift('all');
+					level = message.level;
+					domains = this._categorizationHandler.rawsDomains;
 				} else {
 					this._treeWalker.reset_to_step(message.level);
 	
-					const level = this._treeWalker.current_step;
-					const domains  = this._treeWalker.domain_names;
+					level = this._treeWalker.current_step;
+					domains  = this._treeWalker.domain_names;
 				}
 
 				await this.prevStep(level, domains);
@@ -231,7 +224,7 @@ export class CategorizatorViewProvider {
 			}
 			case 'saveCategory': {
 				const category_text = message.value;
-				await this.saveCategory(category_text);
+				await this._categorizationHandler.saveCategory(category_text);
 				this._treeWalker.reset();
 
 				this.reset_view();
@@ -265,25 +258,10 @@ export class CategorizatorViewProvider {
 			});
 	}
 
-	public async saveCategory(category: string): Promise<void>  {
-		const converted_category = CategorizatorViewProvider.convertCategoryText(category)
-		this.rule.addCategorization(converted_category);
-		await this.rule.saveMetaInfoAndLocalizations();
-	}
-
 	public async reset_view(): Promise<boolean>   {
 		return this._view.webview.postMessage({
 			'command': 'resetView'
 		});
-	}
-
-	private static convertCategoryText(text: string): string  {
-		var lines = text.split(/\r?\n/);
-		Log.info(String(lines.length));
-		lines = lines.map(line => '# ' + line);
-		lines.unshift(this.categoryBorder);
-		lines.push(this.categoryBorder);
-		return lines.join(os.EOL);
 	}
 
 	private getDescription(message: any): string {
@@ -298,10 +276,6 @@ export class CategorizatorViewProvider {
 			}
 		}
 		return description;
-	}
-
-	private range(start = 0, end: number): number[] {
-		return Array.from({length: end - start + 1}, (_, i) => start + i);
 	}
 
 	private getUri(webview: vscode.Webview, extensionUri: vscode.Uri, pathList: string[]) {
